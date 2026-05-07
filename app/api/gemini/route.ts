@@ -94,13 +94,30 @@ ${fileListText}
 
 Instrucción del usuario: ${instruction}`;
 
-    // Build message history
-    const history = conversationHistory
-      .slice(-6) // Keep last 6 messages for context
+    // Build message history — Gemini requires history to start with "user"
+    // and alternate user/model. Filter out leading model messages and empty ones.
+    const rawHistory = conversationHistory
+      .slice(-8)
+      .filter((m) => m.content?.trim())
       .map((m) => ({
         role: m.role === "user" ? ("user" as const) : ("model" as const),
         parts: [{ text: m.content }],
       }));
+
+    // Drop leading "model" messages — Gemini requires first to be "user"
+    while (rawHistory.length > 0 && rawHistory[0].role === "model") {
+      rawHistory.shift();
+    }
+
+    // Ensure alternating roles (collapse consecutive same-role messages)
+    const history: typeof rawHistory = [];
+    for (const msg of rawHistory) {
+      if (history.length > 0 && history[history.length - 1].role === msg.role) {
+        history[history.length - 1] = msg;
+      } else {
+        history.push(msg);
+      }
+    }
 
     const chat = model.startChat({ history });
     const result = await chat.sendMessage(contextMessage);
