@@ -51,8 +51,10 @@ export function useGemini() {
           extension: f.extension,
         }));
 
+        // Exclude loading messages and the initial welcome message (role: assistant
+        // with no prior user message) — Gemini history must start with "user".
         const conversationHistory = messages
-          .filter((m) => !m.isLoading)
+          .filter((m) => !m.isLoading && m.content?.trim())
           .map((m) => ({ role: m.role, content: m.content }));
 
         const response = await fetch("/api/gemini", {
