@@ -42,14 +42,14 @@ export const PROVIDERS: ProviderMeta[] = [
   {
     id: "gemini-flash-lite",
     label: "Gemini Flash-Lite",
-    model: "gemini-2.0-flash-lite",
+    model: "gemini-1.5-flash",
     envKey: "GEMINI_API_KEY",
     description: "Google Gemini 2.0 Flash-Lite — el más ligero, ideal para no agotar cuota",
   },
   {
     id: "gemini-flash",
     label: "Gemini Flash",
-    model: "gemini-2.0-flash",
+    model: "gemini-1.5-flash-latest",
     envKey: "GEMINI_API_KEY",
     description: "Google Gemini 2.0 Flash — rápido y equilibrado",
   },
