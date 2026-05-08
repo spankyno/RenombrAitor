@@ -12,6 +12,7 @@ export function useGemini() {
   const {
     files,
     messages,
+    providerId,
     addMessage,
     updateLastMessage,
     setProposals,
@@ -64,6 +65,7 @@ export function useGemini() {
             files: fileList,
             instruction: userInput,
             conversationHistory,
+            providerId,
           }),
         });
 
@@ -121,7 +123,7 @@ export function useGemini() {
         setIsGenerating(false);
       }
     },
-    [files, messages, addMessage, updateLastMessage, setProposals, setStep, setIsGenerating]
+    [files, messages, providerId, addMessage, updateLastMessage, setProposals, setStep, setIsGenerating]
   );
 
   return { sendMessage };
