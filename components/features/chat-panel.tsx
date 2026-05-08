@@ -5,12 +5,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, Bot, User, Sparkles, ChevronRight } from "lucide-react";
 import type { ChatMessage } from "@/types";
 import { cn } from "@/lib/utils";
+import { ProviderSelector } from "@/components/features/provider-selector";
+import type { ProviderId } from "@/lib/ai-providers";
 
 interface ChatPanelProps {
   messages: ChatMessage[];
   onSend: (message: string) => void;
   isGenerating: boolean;
   filesCount: number;
+  providerId: ProviderId;
+  onProviderChange: (id: ProviderId) => void;
 }
 
 const QUICK_PROMPTS = [
@@ -120,6 +124,8 @@ export function ChatPanel({
   onSend,
   isGenerating,
   filesCount,
+  providerId,
+  onProviderChange,
 }: ChatPanelProps) {
   const [input, setInput] = useState("");
   const [showQuickPrompts, setShowQuickPrompts] = useState(true);
@@ -165,17 +171,18 @@ export function ChatPanel({
         style={{ borderColor: "hsl(220 15% 16%)" }}
       >
         <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center"
+          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: "hsl(195 100% 55% / 0.15)" }}
         >
           <Sparkles size={14} style={{ color: "hsl(195 100% 65%)" }} />
         </div>
-        <div>
-          <p className="text-sm font-semibold">Chat con Gemini</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold">Chat con IA</p>
           <p className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>
-            {filesCount} archivos listos para renombrar
+            {filesCount} nombres listos · solo se envían nombres, no contenido
           </p>
         </div>
+        <ProviderSelector value={providerId} onChange={onProviderChange} />
       </div>
 
       {/* Messages */}
