@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { GenerateRenamesRequest } from "@/types";
 import { sanitizeFileName, getExtension, getBaseName } from "@/types";
+import { getProvider, DEFAULT_PROVIDER, type ProviderId } from "@/lib/ai-providers";
 
 export const runtime = "nodejs";
-export const maxDuration = 30; // Vercel free tier allows up to 60s
+export const maxDuration = 30;
 
+// ─── System prompt ────────────────────────────────────────────────────────────
+// Note: we only receive FILENAMES, never file contents.
+// This keeps token consumption minimal across all providers.
 const SYSTEM_PROMPT = `Eres RenombrAitor, un asistente experto en renombrar archivos de forma inteligente y consistente.
+
+IMPORTANTE: Solo recibes NOMBRES de archivos (no su contenido). Trabaja únicamente con los nombres.
 
 Reglas CRÍTICAS que SIEMPRE debes seguir:
 1. SIEMPRE mantén la extensión original del archivo (ej: .pdf, .jpg, .mp3)
@@ -17,55 +23,75 @@ Reglas CRÍTICAS que SIEMPRE debes seguir:
 6. Responde SIEMPRE en español
 
 Cuando el usuario te dé instrucciones de renombrado:
-- Analiza TODOS los archivos en la lista
+- Analiza TODOS los nombres de archivo en la lista
 - Genera un nombre nuevo para CADA archivo siguiendo exactamente las instrucciones
-- Responde ÚNICAMENTE con un objeto JSON válido en este formato exacto:
+- Responde ÚNICAMENTE con un objeto JSON válido en este formato exacto (sin texto antes ni después):
 
-{
-  "type": "proposals",
-  "message": "Descripción breve de lo que hiciste",
-  "proposals": [
-    {"fileId": "file-0", "originalName": "archivo.jpg", "proposedName": "nuevo_nombre.jpg"},
-    ...
-  ]
-}
+{"type":"proposals","message":"Descripción breve de lo que hiciste","proposals":[{"fileId":"file-0","originalName":"archivo.jpg","proposedName":"nuevo_nombre.jpg"}]}
 
-Si el usuario hace una pregunta general, pide aclaraciones o hace conversación (NO está dando instrucciones de renombrado concretas):
-Responde con:
-{
-  "type": "conversation",
-  "message": "Tu respuesta conversacional aquí"
-}
+Si el usuario hace una pregunta general, pide aclaraciones o hace conversación:
+{"type":"conversation","message":"Tu respuesta aquí"}`;
 
-Ejemplos de instrucciones de renombrado (responde con proposals):
-- "Renombra en snake_case"
-- "Añade el prefijo '2024_'"
-- "Formato: fecha_descripción.ext"
-- "Elimina los espacios y ponlos en minúsculas"
-- "Numera los archivos del 001 al 999"
+// ─── OpenAI-compatible call (DeepSeek, OpenRouter, Grok) ─────────────────────
+async function callOpenAICompat(
+  baseUrl: string,
+  apiKey: string,
+  model: string,
+  messages: Array<{ role: string; content: string }>
+): Promise<string> {
+  const res = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      // OpenRouter requires these headers
+      "HTTP-Referer": "https://renombraitor.vercel.app",
+      "X-Title": "RenombrAitor",
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      max_tokens: 4096,
+      temperature: 0.2,
+    }),
+  });
 
-Ejemplos de conversación (responde con conversation):
-- "¿Puedes ayudarme?"
-- "¿Qué formatos soportas?"
-- "Hola"`;
-
-export async function POST(req: NextRequest) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "GEMINI_API_KEY no configurada. Añádela en las variables de entorno de Vercel." },
-      { status: 500 }
-    );
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`${res.status} ${res.statusText}: ${err.slice(0, 200)}`);
   }
 
-  let body: GenerateRenamesRequest;
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content ?? "";
+}
+
+// ─── Gemini call ──────────────────────────────────────────────────────────────
+async function callGemini(
+  apiKey: string,
+  model: string,
+  contextMessage: string,
+  history: Array<{ role: "user" | "model"; parts: Array<{ text: string }> }>
+): Promise<string> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const geminiModel = genAI.getGenerativeModel({
+    model,
+    systemInstruction: SYSTEM_PROMPT,
+  });
+  const chat = geminiModel.startChat({ history });
+  const result = await chat.sendMessage(contextMessage);
+  return result.response.text().trim();
+}
+
+// ─── Main handler ─────────────────────────────────────────────────────────────
+export async function POST(req: NextRequest) {
+  let body: GenerateRenamesRequest & { providerId?: ProviderId };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
-  const { files, instruction, conversationHistory } = body;
+  const { files, instruction, conversationHistory, providerId } = body;
 
   if (!files || !instruction) {
     return NextResponse.json(
@@ -74,128 +100,126 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-pro",
-      systemInstruction: SYSTEM_PROMPT,
-    });
+  // Resolve provider
+  const provider = getProvider(providerId ?? DEFAULT_PROVIDER);
+  const apiKey = process.env[provider.envKey];
 
-    // Build conversation context
-    const fileListText = files
-      .map(
-        (f, idx) =>
-          `[file-${idx}] ${f.name} (${formatSize(f.size)}, .${f.extension || "sin extensión"})`
-      )
-      .join("\n");
+  if (!apiKey) {
+    return NextResponse.json(
+      {
+        error: `API key para ${provider.label} no configurada. Añade la variable de entorno "${provider.envKey}" en Vercel.`,
+      },
+      { status: 500 }
+    );
+  }
 
-    const contextMessage = `Lista de archivos a renombrar (${files.length} archivos):
+  // Build the file list — ONLY names (+ size for context), never file contents.
+  // This is intentional: keeps token usage minimal and protects user privacy.
+  const fileListText = files
+    .map((f, idx) => `[file-${idx}] ${f.name}`)
+    .join("\n");
+
+  const contextMessage = `Lista de nombres de archivo (${files.length} archivos) — solo se procesan los nombres, no el contenido:
 ${fileListText}
 
-Instrucción del usuario: ${instruction}`;
+Instrucción: ${instruction}`;
 
-    // Build message history — Gemini requires history to start with "user"
-    // and alternate user/model. Filter out leading model messages and empty ones.
-    const rawHistory = conversationHistory
-      .slice(-8)
-      .filter((m) => m.content?.trim())
-      .map((m) => ({
-        role: m.role === "user" ? ("user" as const) : ("model" as const),
-        parts: [{ text: m.content }],
-      }));
+  try {
+    let responseText: string;
 
-    // Drop leading "model" messages — Gemini requires first to be "user"
-    while (rawHistory.length > 0 && rawHistory[0].role === "model") {
-      rawHistory.shift();
-    }
+    if (provider.id === "gemini-flash" || provider.id === "gemini-flash-lite") {
+      // ── Gemini SDK path ──────────────────────────────────────────────────
+      const rawHistory = conversationHistory
+        .slice(-8)
+        .filter((m) => m.content?.trim())
+        .map((m) => ({
+          role: m.role === "user" ? ("user" as const) : ("model" as const),
+          parts: [{ text: m.content }],
+        }));
 
-    // Ensure alternating roles (collapse consecutive same-role messages)
-    const history: typeof rawHistory = [];
-    for (const msg of rawHistory) {
-      if (history.length > 0 && history[history.length - 1].role === msg.role) {
-        history[history.length - 1] = msg;
-      } else {
-        history.push(msg);
+      while (rawHistory.length > 0 && rawHistory[0].role === "model") {
+        rawHistory.shift();
       }
+
+      const history: typeof rawHistory = [];
+      for (const msg of rawHistory) {
+        if (history.length > 0 && history[history.length - 1].role === msg.role) {
+          history[history.length - 1] = msg;
+        } else {
+          history.push(msg);
+        }
+      }
+
+      responseText = await callGemini(apiKey, provider.model, contextMessage, history);
+    } else {
+      // ── OpenAI-compatible path (DeepSeek / OpenRouter / Grok) ───────────
+      const messages: Array<{ role: string; content: string }> = [
+        { role: "system", content: SYSTEM_PROMPT },
+        // Include last 6 turns of history as context
+        ...conversationHistory
+          .slice(-6)
+          .filter((m) => m.content?.trim())
+          .map((m) => ({
+            role: m.role === "assistant" ? "assistant" : "user",
+            content: m.content,
+          })),
+        { role: "user", content: contextMessage },
+      ];
+
+      responseText = await callOpenAICompat(
+        provider.baseUrl!,
+        apiKey,
+        provider.model,
+        messages
+      );
     }
 
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(contextMessage);
-    const responseText = result.response.text().trim();
+    // ── Parse response ─────────────────────────────────────────────────────
+    let parsed: {
+      type: string;
+      message: string;
+      proposals?: Array<{
+        fileId: string;
+        originalName: string;
+        proposedName: string;
+      }>;
+    };
 
-    // Parse the JSON response
-    let parsed: { type: string; message: string; proposals?: Array<{ fileId: string; originalName: string; proposedName: string }> };
     try {
-      // Strip markdown code fences if present
       const cleaned = responseText
         .replace(/```json\n?/g, "")
         .replace(/```\n?/g, "")
         .trim();
       parsed = JSON.parse(cleaned);
     } catch {
-      // If we can't parse JSON, treat as conversational
-      return NextResponse.json({
-        isConversational: true,
-        message: responseText,
-      });
+      return NextResponse.json({ isConversational: true, message: responseText });
     }
 
     if (parsed.type === "proposals" && parsed.proposals) {
-      // Validate and sanitize proposals
       const validatedProposals = parsed.proposals
         .map((p) => {
-          // Ensure extension is preserved
           const originalExt = getExtension(p.originalName);
           const proposedExt = getExtension(p.proposedName);
-
           let finalName = p.proposedName;
-
-          // If extension was lost, add it back
           if (originalExt && proposedExt !== originalExt) {
-            const base = getBaseName(p.proposedName);
-            finalName = `${base}.${originalExt}`;
+            finalName = `${getBaseName(p.proposedName)}.${originalExt}`;
           }
-
-          // Sanitize the name
           finalName = sanitizeFileName(finalName);
-
           return {
             fileId: p.fileId,
             originalName: p.originalName,
             proposedName: finalName || p.originalName,
           };
         })
-        .filter((p) => p.proposedName); // Remove empty names
+        .filter((p) => p.proposedName);
 
-      return NextResponse.json({
-        proposals: validatedProposals,
-        message: parsed.message,
-      });
+      return NextResponse.json({ proposals: validatedProposals, message: parsed.message });
     }
 
-    // Conversational response
-    return NextResponse.json({
-      isConversational: true,
-      message: parsed.message || responseText,
-    });
+    return NextResponse.json({ isConversational: true, message: parsed.message ?? responseText });
   } catch (err) {
-    console.error("Gemini API error:", err);
-    const message =
-      err instanceof Error ? err.message : "Error desconocido de la API";
-
-    if (message.includes("API_KEY")) {
-      return NextResponse.json(
-        { error: "API Key de Gemini inválida o sin permisos." },
-        { status: 401 }
-      );
-    }
-
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error(`[${provider.label}] error:`, err);
+    const message = err instanceof Error ? err.message : "Error desconocido";
+    return NextResponse.json({ error: `[${provider.label}] ${message}` }, { status: 500 });
   }
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
