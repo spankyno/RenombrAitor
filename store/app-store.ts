@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import { DEFAULT_PROVIDER, type ProviderId } from "@/lib/ai-providers";
 import type {
   AppStep,
   FileEntry,
@@ -40,6 +41,10 @@ interface AppState {
   applyResult: ApplyResult | null;
   setApplyResult: (result: ApplyResult | null) => void;
 
+  // Selected AI provider
+  providerId: ProviderId;
+  setProviderId: (id: ProviderId) => void;
+
   // Loading states
   isLoadingFiles: boolean;
   isGenerating: boolean;
@@ -56,6 +61,7 @@ interface AppState {
 
 const initialState = {
   step: "idle" as AppStep,
+  providerId: DEFAULT_PROVIDER as ProviderId,
   sourceFolder: null,
   destinationFolder: null,
   files: [],
@@ -74,6 +80,8 @@ export const useAppStore = create<AppState>()(
       ...initialState,
 
       setStep: (step) => set({ step }),
+
+      setProviderId: (providerId) => set({ providerId }),
 
       setSourceFolder: (sourceFolder) => set({ sourceFolder }),
       setDestinationFolder: (destinationFolder) => set({ destinationFolder }),
