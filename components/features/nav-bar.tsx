@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ThemeToggle } from "@/components/features/theme-toggle";
 import { FolderOpen, MessageSquare, Eye, CheckCircle, Sparkles, RotateCcw } from "lucide-react";
 import type { AppStep } from "@/types";
 import { cn } from "@/lib/utils";
@@ -34,8 +35,8 @@ export function NavBar({ step, folderName, filesCount, onReset }: NavBarProps) {
       animate={{ opacity: 1, y: 0 }}
       className="sticky top-0 z-50 border-b px-4 py-3 flex items-center justify-between"
       style={{
-        background: "hsl(222 20% 8% / 0.9)",
-        borderColor: "hsl(220 15% 16%)",
+        background: "hsl(var(--background) / 0.9)",
+        borderColor: "hsl(var(--border))",
         backdropFilter: "blur(12px)",
       }}
     >
@@ -43,9 +44,9 @@ export function NavBar({ step, folderName, filesCount, onReset }: NavBarProps) {
       <div className="flex items-center gap-2">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center"
-          style={{ background: "hsl(195 100% 55% / 0.15)" }}
+          style={{ background: "hsl(var(--primary) / 0.15)" }}
         >
-          <Sparkles size={14} style={{ color: "hsl(195 100% 65%)" }} />
+          <Sparkles size={14} style={{ color: "hsl(var(--primary))" }} />
         </div>
         <span className="font-bold text-sm">
           <span className="gradient-text">Renombr</span>
@@ -54,13 +55,13 @@ export function NavBar({ step, folderName, filesCount, onReset }: NavBarProps) {
         {folderName && (
           <>
             <span style={{ color: "hsl(220 15% 30%)" }}>/</span>
-            <span className="text-sm font-mono truncate max-w-[160px]" style={{ color: "hsl(215 15% 55%)" }}>
+            <span className="text-sm font-mono truncate max-w-[160px]" style={{ color: "hsl(var(--muted-foreground))" }}>
               {folderName}
             </span>
             {filesCount !== undefined && (
               <span
                 className="text-xs px-2 py-0.5 rounded-full"
-                style={{ background: "hsl(220 15% 18%)", color: "hsl(215 15% 50%)" }}
+                style={{ background: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }}
               >
                 {filesCount} archivos
               </span>
@@ -83,15 +84,15 @@ export function NavBar({ step, folderName, filesCount, onReset }: NavBarProps) {
                   )}
                   style={{
                     background: current
-                      ? "hsl(195 100% 55% / 0.12)"
+                      ? "hsl(var(--primary) / 0.12)"
                       : active
                       ? "transparent"
                       : "transparent",
                     color: current
-                      ? "hsl(195 100% 65%)"
+                      ? "hsl(var(--primary))"
                       : active
-                      ? "hsl(215 15% 60%)"
-                      : "hsl(215 15% 35%)",
+                      ? "hsl(var(--muted-foreground))"
+                      : "hsl(var(--muted-foreground))",
                   }}
                 >
                   <s.icon size={12} />
@@ -100,7 +101,7 @@ export function NavBar({ step, folderName, filesCount, onReset }: NavBarProps) {
                 {i < STEPS.length - 1 && (
                   <div
                     className="w-4 h-px"
-                    style={{ background: active ? "hsl(220 15% 25%)" : "hsl(220 15% 18%)" }}
+                    style={{ background: active ? "hsl(220 15% 25%)" : "hsl(var(--border))" }}
                   />
                 )}
               </div>
@@ -109,17 +110,20 @@ export function NavBar({ step, folderName, filesCount, onReset }: NavBarProps) {
         </div>
       )}
 
-      {/* Reset button */}
-      {step !== "idle" && (
-        <button
-          onClick={onReset}
-          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors hover:bg-white/[0.05]"
-          style={{ color: "hsl(215 15% 50%)" }}
-        >
-          <RotateCcw size={12} />
-          Nueva sesión
-        </button>
-      )}
+      {/* Right controls */}
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
+        {step !== "idle" && (
+          <button
+            onClick={onReset}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors hover:bg-black/[0.05] dark:hover:bg-white/[0.05]"
+            style={{ color: "hsl(var(--muted-foreground))" }}
+          >
+            <RotateCcw size={12} />
+            Nueva sesión
+          </button>
+        )}
+      </div>
     </motion.nav>
   );
 }

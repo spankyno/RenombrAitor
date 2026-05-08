@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { FolderOpen, Sparkles, Zap, Shield, ArrowRight, AlertTriangle } from "lucide-react";
+import { ThemeToggle } from "@/components/features/theme-toggle";
 import { cn } from "@/lib/utils";
 import { isFileSystemAccessSupported } from "@/hooks/use-file-system";
 
@@ -42,6 +43,10 @@ export function HeroScreen({ onSelectFolder, isLoading }: HeroScreenProps) {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
+      {/* Theme toggle — top right */}
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle />
+      </div>
       {/* Animated background grid */}
       <div className="absolute inset-0 grid-bg opacity-40" />
 
@@ -50,20 +55,20 @@ export function HeroScreen({ onSelectFolder, isLoading }: HeroScreenProps) {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 80% 60% at 50% 40%, hsl(195 100% 55% / 0.06) 0%, transparent 70%), radial-gradient(ellipse 60% 40% at 80% 80%, hsl(270 80% 65% / 0.05) 0%, transparent 60%)",
+            "radial-gradient(ellipse 80% 60% at 50% 40%, hsl(var(--primary) / 0.06) 0%, transparent 70%), radial-gradient(ellipse 60% 40% at 80% 80%, hsl(var(--accent) / 0.05) 0%, transparent 60%)",
         }}
       />
 
       {/* Floating orbs */}
       <motion.div
         className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full blur-3xl pointer-events-none"
-        style={{ background: "hsl(195 100% 55% / 0.04)" }}
+        style={{ background: "hsl(var(--primary) / 0.04)" }}
         animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-3xl pointer-events-none"
-        style={{ background: "hsl(270 80% 65% / 0.04)" }}
+        style={{ background: "hsl(var(--accent) / 0.04)" }}
         animate={{ scale: [1.2, 1, 1.2], opacity: [0.3, 0.5, 0.3] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -78,9 +83,9 @@ export function HeroScreen({ onSelectFolder, isLoading }: HeroScreenProps) {
         >
           <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border"
             style={{
-              background: "hsl(195 100% 55% / 0.08)",
-              borderColor: "hsl(195 100% 55% / 0.25)",
-              color: "hsl(195 100% 65%)",
+              background: "hsl(var(--primary) / 0.08)",
+              borderColor: "hsl(var(--primary) / 0.25)",
+              color: "hsl(var(--primary))",
             }}
           >
             <Sparkles size={12} />
@@ -96,7 +101,7 @@ export function HeroScreen({ onSelectFolder, isLoading }: HeroScreenProps) {
           className="text-6xl sm:text-7xl md:text-8xl font-bold tracking-tight mb-4"
         >
           <span className="gradient-text">Renombr</span>
-          <span style={{ color: "hsl(210 20% 92%)" }}>Aitor</span>
+          <span style={{ color: "hsl(var(--foreground))" }}>Aitor</span>
         </motion.h1>
 
         {/* Subtitle */}
@@ -105,7 +110,7 @@ export function HeroScreen({ onSelectFolder, isLoading }: HeroScreenProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg sm:text-xl mb-3 max-w-xl"
-          style={{ color: "hsl(215 15% 60%)" }}
+          style={{ color: "hsl(var(--muted-foreground))" }}
         >
           Renombra archivos de forma masiva e inteligente.
           <br />
@@ -127,9 +132,9 @@ export function HeroScreen({ onSelectFolder, isLoading }: HeroScreenProps) {
               transition={{ delay: 0.4 + i * 0.05 }}
               className="text-xs px-2.5 py-1 rounded-full border font-mono"
               style={{
-                background: "hsl(220 15% 13%)",
-                borderColor: "hsl(220 15% 20%)",
-                color: "hsl(215 15% 55%)",
+                background: "hsl(var(--input))",
+                borderColor: "hsl(var(--border))",
+                color: "hsl(var(--muted-foreground))",
               }}
             >
               &quot;{ex}&quot;
@@ -171,7 +176,7 @@ export function HeroScreen({ onSelectFolder, isLoading }: HeroScreenProps) {
               )}
               style={{
                 background: "linear-gradient(135deg, hsl(195 100% 50%), hsl(195 100% 40%))",
-                color: "hsl(222 20% 8%)",
+                color: "hsl(var(--background))",
               }}
             >
               {isLoading ? (
@@ -212,18 +217,18 @@ export function HeroScreen({ onSelectFolder, isLoading }: HeroScreenProps) {
               transition={{ delay: 0.7 + i * 0.1 }}
               className="flex flex-col items-center gap-2 p-4 rounded-xl border"
               style={{
-                background: "hsl(222 18% 10%)",
-                borderColor: "hsl(220 15% 16%)",
+                background: "hsl(var(--card))",
+                borderColor: "hsl(var(--border))",
               }}
             >
               <feat.icon
                 size={20}
-                style={{ color: "hsl(195 100% 60%)" }}
+                style={{ color: "hsl(var(--primary))" }}
               />
-              <p className="text-sm font-medium" style={{ color: "hsl(210 20% 85%)" }}>
+              <p className="text-sm font-medium" style={{ color: "hsl(var(--foreground))" }}>
                 {feat.label}
               </p>
-              <p className="text-xs text-center" style={{ color: "hsl(215 15% 50%)" }}>
+              <p className="text-xs text-center" style={{ color: "hsl(var(--muted-foreground))" }}>
                 {feat.desc}
               </p>
             </motion.div>
