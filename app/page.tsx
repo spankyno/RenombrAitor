@@ -27,6 +27,8 @@ export default function HomePage() {
     files,
     messages,
     addMessage,
+    providerId,
+    setProviderId,
     proposals,
     updateProposal,
     setProposals,
@@ -235,6 +237,8 @@ export default function HomePage() {
                   onSend={handleChatSend}
                   isGenerating={isGenerating}
                   filesCount={files.length}
+                  providerId={providerId}
+                  onProviderChange={setProviderId}
                 />
               </div>
             )}
