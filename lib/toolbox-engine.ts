@@ -25,9 +25,10 @@ export interface ChangeExtensionConfig {
 }
 
 export interface ReplaceConfig {
-  search: string;       // supports * and ? wildcards
+  search: string;       // supports * and ? wildcards (or regex if flag set)
   replacement: string;
   caseSensitive: boolean;
+  useRegex: boolean;    // New: interpret search as regex
   scope: "basename" | "full"; // apply to basename only or full name incl. ext
 }
 
@@ -140,9 +141,9 @@ function transform(
     }
 
     case "replace": {
-      const { search, replacement, caseSensitive, scope } = tc.config;
+      const { search, replacement, caseSensitive, scope, useRegex } = tc.config;
       const target = scope === "full" ? file.name : base;
-      const result = wildcardReplace(target, search, replacement, caseSensitive);
+      const result = wildcardReplace(target, search, replacement, caseSensitive, useRegex);
       return scope === "full" ? result : `${result}${dotExt}`;
     }
 
@@ -225,28 +226,28 @@ function wildcardReplace(
   str: string,
   pattern: string,
   replacement: string,
-  caseSensitive: boolean
+  caseSensitive: boolean,
+  useRegex: boolean
 ): string {
-  // Convert wildcard pattern to regex
-  // * → match any sequence, ? → match single char
-  const escaped = pattern
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&") // escape regex special chars
-    .replace(/\*/g, ".*")
-    .replace(/\?/g, ".");
+  if (!pattern) return str;
 
+  let regex: RegExp;
   const flags = caseSensitive ? "g" : "gi";
+
   try {
-    const regex = new RegExp(escaped, flags);
+    if (useRegex) {
+      regex = new RegExp(pattern, flags);
+    } else {
+      // Convert wildcard pattern to regex
+      const escaped = pattern
+        .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*/g, ".*")
+        .replace(/\?/g, ".");
+      regex = new RegExp(escaped, flags);
+    }
     return str.replace(regex, replacement);
   } catch {
-    // Fallback to plain string replace if regex fails
-    const search = caseSensitive ? pattern : pattern.toLowerCase();
-    const target = caseSensitive ? str : str.toLowerCase();
-    if (!target.includes(search)) return str;
-    return str.replace(
-      new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), flags),
-      replacement
-    );
+    return str;
   }
 }
 
@@ -313,7 +314,7 @@ function randomString(length: number, charset: RandomNameConfig["charset"]): str
 export function defaultConfig(tool: ToolId): ToolConfig {
   switch (tool) {
     case "change-extension": return { tool, config: { newExtension: "" } };
-    case "replace":          return { tool, config: { search: "", replacement: "", caseSensitive: false, scope: "basename" } };
+    case "replace":          return { tool, config: { search: "", replacement: "", caseSensitive: false, useRegex: false, scope: "basename" } };
     case "insert":           return { tool, config: { text: "", position: "prefix", index: 0, applyTo: "basename" } };
     case "delete-chars":     return { tool, config: { from: 0, count: 1, applyTo: "basename" } };
     case "enumerate":        return { tool, config: { start: 1, step: 1, digits: 3, position: "prefix", separator: "_" } };
