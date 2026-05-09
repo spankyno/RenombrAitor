@@ -8,33 +8,71 @@ import { auth } from "@clerk/nextjs/server";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-// ─── Per-user rate limiter (sliding window) ───────────────────────────────────
-// Gemini 2.0 Flash-Lite free tier: 30 RPM / 1500 RPD.
-// We enforce 20 RPM per user (conservative) to leave headroom for retries.
-const RATE_WINDOW_MS = 60_000;      // 1-minute window
-const RATE_MAX_REQUESTS = 20;       // max requests per window per user
-
-interface RateEntry { timestamps: number[] }
-const rateMap = new Map<string, RateEntry>();
-
-function checkRateLimit(userId: string): { allowed: boolean; retryAfterMs: number } {
-  const now = Date.now();
-  const entry = rateMap.get(userId) ?? { timestamps: [] };
-  // Drop timestamps outside the window
-  entry.timestamps = entry.timestamps.filter((t) => now - t < RATE_WINDOW_MS);
-
-  if (entry.timestamps.length >= RATE_MAX_REQUESTS) {
-    const oldest = entry.timestamps[0];
-    const retryAfterMs = RATE_WINDOW_MS - (now - oldest) + 500; // +500ms buffer
-    rateMap.set(userId, entry);
-    return { allowed: false, retryAfterMs };
-  }
-
-  entry.timestamps.push(now);
-  rateMap.set(userId, entry);
-  return { allowed: true, retryAfterMs: 0 };
+// ─── Singleton Gemini client (reuse across warm invocations) ──────────────────
+declare global {
+  // eslint-disable-next-line no-var
+  var __genAI: GoogleGenerativeAI | undefined;
 }
 
+function getGenAI(apiKey: string): GoogleGenerativeAI {
+  if (!globalThis.__genAI) {
+    globalThis.__genAI = new GoogleGenerativeAI(apiKey);
+  }
+  return globalThis.__genAI;
+}
+
+// ─── Per-user dedup guard (blocks double-fire within 2s) ─────────────────────
+// Solves React StrictMode / double-mount sending two requests simultaneously.
+const inflightMap = new Map<string, number>(); // userId → timestamp of last accepted request
+const DEDUP_WINDOW_MS = 2_000;
+
+function isDuplicate(userId: string): boolean {
+  const last = inflightMap.get(userId) ?? 0;
+  const now = Date.now();
+  if (now - last < DEDUP_WINDOW_MS) return true;
+  inflightMap.set(userId, now);
+  return false;
+}
+
+// ─── sleep ────────────────────────────────────────────────────────────────────
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+// ─── Quota-error classifier ───────────────────────────────────────────────────
+const QUOTA_KEYWORDS = [
+  "resource_exhausted",
+  "resource exhausted",
+  "quota exceeded",
+  "ratelimitexceeded",
+  "rate_limit_exceeded",
+  "too many requests",
+  "requests per minute",
+  "requests per day",
+];
+
+function isQuotaError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message.toLowerCase();
+  return QUOTA_KEYWORDS.some((kw) => msg.includes(kw));
+}
+
+// ─── Server-side retry (quota errors only, 2 attempts max) ───────────────────
+async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 2): Promise<T> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (!isQuotaError(err) || attempt === maxAttempts - 1) throw err;
+      const delay = 4_000 * (attempt + 1); // 4s, 8s
+      console.warn(`[RenombrAitor] Quota hit attempt ${attempt + 1}, waiting ${delay / 1000}s`);
+      await sleep(delay);
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
+
+// ─── System prompt ────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `Eres RenombrAitor, un asistente experto en renombrar archivos de forma inteligente y consistente.
 
 IMPORTANTE: Solo recibes NOMBRES de archivos (no su contenido). Trabaja únicamente con los nombres.
@@ -52,83 +90,31 @@ Cuando recibas instrucciones de renombrado, responde ÚNICAMENTE con JSON válid
 Para conversación general:
 {"type":"conversation","message":"Tu respuesta"}`;
 
-// ─── sleep ────────────────────────────────────────────────────────────────────
-function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-// ─── Retry with exponential backoff ──────────────────────────────────────────
-// BUG FIX: Previously isRetryable matched "limit" which appears in normal error
-// messages (e.g. "File limit exceeded"), causing false 429s.
-// Now we only match specific quota/rate-limit strings from Gemini/OpenAI APIs.
-const QUOTA_KEYWORDS = [
-  "resource_exhausted",
-  "resource exhausted",
-  "quota exceeded",
-  "rateLimitExceeded",
-  "rate_limit_exceeded",
-  "too many requests",
-  "requests per minute",
-  "requests per day",
-];
-
-function isQuotaError(err: unknown): boolean {
-  if (!(err instanceof Error)) return false;
-  const msg = err.message.toLowerCase();
-  return QUOTA_KEYWORDS.some((kw) => msg.includes(kw.toLowerCase()));
-}
-
-async function withRetry<T>(
-  fn: () => Promise<T>,
-  maxAttempts = 3,       // reduced: 3 attempts max (was 4)
-  baseDelayMs = 3000     // increased: start at 3s (was 2s)
-): Promise<T> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      const isLast = attempt === maxAttempts - 1;
-      if (!isQuotaError(err) || isLast) throw err;
-      const delay = baseDelayMs * Math.pow(2, attempt); // 3s → 6s → 12s
-      const jitter = Math.random() * 1000;
-      console.warn(`[RenombrAitor] Quota hit on attempt ${attempt + 1}, waiting ${Math.round((delay + jitter) / 1000)}s…`);
-      await sleep(delay + jitter);
-    }
-  }
-  // unreachable but satisfies TS
-  throw new Error("Max retries exceeded");
-}
-
-// ─── Gemini call via SDK ──────────────────────────────────────────────────────
+// ─── Gemini call — generateContent (no chat session overhead) ─────────────────
 async function callGemini(
   apiKey: string,
   model: string,
-  contextMessage: string,
-  history: Array<{ role: "user" | "model"; parts: Array<{ text: string }> }>
+  prompt: string
 ): Promise<string> {
-  const genAI = new GoogleGenerativeAI(apiKey);
+  // Small throttle before hitting the API — avoids burst rejections on free tier
+  await sleep(300);
+
+  const genAI = getGenAI(apiKey);
   const geminiModel = genAI.getGenerativeModel({
     model,
     systemInstruction: SYSTEM_PROMPT,
-    generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 4096,
-    },
+    generationConfig: { temperature: 0.2, maxOutputTokens: 4096 },
   });
-  const chat = geminiModel.startChat({ history });
-  const result = await chat.sendMessage(contextMessage);
 
-  // BUG FIX: check for blocked/empty responses before accessing text()
-  const response = result.response;
-  const candidate = response.candidates?.[0];
-  if (!candidate) {
-    throw new Error("Gemini devolvió una respuesta vacía. Intenta de nuevo.");
-  }
+  const result = await geminiModel.generateContent(prompt);
+
+  const candidate = result.response.candidates?.[0];
+  if (!candidate) throw new Error("Gemini devolvió una respuesta vacía. Intenta de nuevo.");
   if (candidate.finishReason && !["STOP", "MAX_TOKENS"].includes(candidate.finishReason as string)) {
     throw new Error(`Gemini bloqueó la respuesta (${candidate.finishReason}). Simplifica la instrucción.`);
   }
 
-  return response.text().trim();
+  return result.response.text().trim();
 }
 
 // ─── OpenAI-compatible call ───────────────────────────────────────────────────
@@ -151,40 +137,11 @@ async function callOpenAICompat(
 
   if (!res.ok) {
     const text = await res.text();
-    // BUG FIX: preserve the HTTP status in the error message so isQuotaError
-    // can detect real 429s from the upstream API, not confuse them with our own.
     throw new Error(`HTTP_${res.status}: ${text.slice(0, 300)}`);
   }
 
   const data = await res.json();
   return data.choices?.[0]?.message?.content ?? "";
-}
-
-// ─── Build sanitised Gemini history ──────────────────────────────────────────
-function buildGeminiHistory(
-  conversationHistory: Array<{ role: string; content: string }>
-) {
-  const raw = conversationHistory
-    .slice(-8)
-    .filter((m) => m.content?.trim())
-    .map((m) => ({
-      role: m.role === "user" ? ("user" as const) : ("model" as const),
-      parts: [{ text: m.content }],
-    }));
-
-  // Must start with "user"
-  while (raw.length > 0 && raw[0].role === "model") raw.shift();
-
-  // Collapse consecutive same-role messages (keep last)
-  const history: typeof raw = [];
-  for (const msg of raw) {
-    if (history.length > 0 && history[history.length - 1].role === msg.role) {
-      history[history.length - 1] = msg;
-    } else {
-      history.push(msg);
-    }
-  }
-  return history;
 }
 
 // ─── Parse & validate proposals ──────────────────────────────────────────────
@@ -202,7 +159,6 @@ function parseResponse(responseText: string) {
       .trim();
     parsed = JSON.parse(cleaned);
   } catch {
-    // Model returned plain text — treat as conversational
     return { isConversational: true, message: responseText };
   }
 
@@ -227,9 +183,7 @@ function parseResponse(responseText: string) {
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  // BUG FIX: auth() must be called BEFORE req.json() in Next.js 15 App Router.
-  // Calling it after can cause the request body stream to be consumed twice,
-  // which throws internally and gets misclassified as a quota/rate error.
+  // auth() MUST be called before req.json() in Next.js 15 App Router
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json(
@@ -238,16 +192,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Per-user rate limit check ─────────────────────────────────────────────
-  const { allowed, retryAfterMs } = checkRateLimit(userId);
-  if (!allowed) {
-    const retryAfterSec = Math.ceil(retryAfterMs / 1000);
+  // ── Dedup guard: reject duplicate requests arriving within 2s ────────────
+  if (isDuplicate(userId)) {
+    console.warn(`[RenombrAitor] Duplicate request blocked for user ${userId.slice(0, 8)}`);
     return NextResponse.json(
-      { error: `⏳ Demasiadas peticiones. Espera ${retryAfterSec}s antes de reintentar.`, retryAfterMs },
-      {
-        status: 429,
-        headers: { "Retry-After": String(retryAfterSec) },
-      }
+      { error: "Petición duplicada ignorada. Por favor espera la respuesta anterior." },
+      { status: 429 }
     );
   }
 
@@ -269,24 +219,21 @@ export async function POST(req: NextRequest) {
 
   if (!apiKey) {
     return NextResponse.json(
-      { error: `API key para "${provider.label}" no configurada. Añade la variable "${provider.envKey}" en Vercel → Settings → Environment Variables.` },
+      { error: `API key para "${provider.label}" no configurada. Añade "${provider.envKey}" en Vercel → Settings → Environment Variables.` },
       { status: 500 }
     );
   }
 
-  // Only filenames are sent — never file contents. Keeps token usage minimal.
+  // Only filenames — never file contents
   const fileListText = files.map((f, idx) => `[file-${idx}] ${f.name}`).join("\n");
-  const contextMessage =
-    `Lista de nombres de archivo (${files.length} archivos):\n${fileListText}\n\nInstrucción del usuario: ${instruction}`;
+  const prompt = `Lista de nombres de archivo (${files.length} archivos):\n${fileListText}\n\nInstrucción del usuario: ${instruction}`;
 
   try {
     let responseText: string;
 
     if (provider.id === "gemini-flash" || provider.id === "gemini-flash-lite") {
-      const history = buildGeminiHistory(conversationHistory);
-      responseText = await withRetry(() =>
-        callGemini(apiKey, provider.model, contextMessage, history)
-      );
+      // generateContent — simpler, faster, no chat session overhead
+      responseText = await withRetry(() => callGemini(apiKey, provider.model, prompt));
     } else {
       // OpenAI-compatible providers (DeepSeek, OpenRouter, Grok)
       const msgs: Array<{ role: string; content: string }> = [
@@ -298,12 +245,9 @@ export async function POST(req: NextRequest) {
             role: m.role === "assistant" ? "assistant" : "user",
             content: m.content,
           })),
-        { role: "user", content: contextMessage },
+        { role: "user", content: prompt },
       ];
-
-      responseText = await withRetry(() =>
-        callOpenAICompat(provider.baseUrl!, apiKey, provider.model, msgs)
-      );
+      responseText = await withRetry(() => callOpenAICompat(provider.baseUrl!, apiKey, provider.model, msgs));
     }
 
     return NextResponse.json(parseResponse(responseText));
@@ -312,10 +256,9 @@ export async function POST(req: NextRequest) {
     console.error(`[${provider.label}] Final error:`, err);
     const msg = err instanceof Error ? err.message : String(err);
 
-    // Only surface quota errors as 429; everything else is 500
     if (isQuotaError(err) || msg.includes("HTTP_429")) {
       return NextResponse.json(
-        { error: `⏳ La API de ${provider.label} ha devuelto un error de cuota (429). Espera 1 minuto e inténtalo de nuevo, o cambia de proveedor en el selector.` },
+        { error: `⏳ Cuota de ${provider.label} agotada. Espera 1 minuto o cambia de proveedor.` },
         { status: 429 }
       );
     }
