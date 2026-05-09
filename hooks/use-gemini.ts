@@ -8,42 +8,9 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
 }
 
-// ─── Exponential backoff with Retry-After support ─────────────────────────────
-async function fetchWithBackoff(
-  url: string,
-  init: RequestInit,
-  onRetry?: (waitMs: number, attempt: number) => void,
-  maxAttempts = 4
-): Promise<Response> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const res = await fetch(url, init);
-
-    if (res.status !== 429) return res;
-
-    // Last attempt — return the 429 so caller can handle it
-    if (attempt === maxAttempts - 1) return res;
-
-    // Read Retry-After from server (in seconds) or fall back to exponential
-    const retryAfterSec = Number(res.headers.get("Retry-After") ?? 0);
-    const baseDelay = retryAfterSec > 0
-      ? retryAfterSec * 1000
-      : Math.min(2000 * Math.pow(2, attempt), 30_000); // 2s → 4s → 8s → 30s cap
-    const jitter = Math.random() * 500;
-    const waitMs = Math.round(baseDelay + jitter);
-
-    console.warn(`[RenombrAitor] 429 on attempt ${attempt + 1}/${maxAttempts} — waiting ${(waitMs / 1000).toFixed(1)}s`);
-    onRetry?.(waitMs, attempt + 1);
-
-    await new Promise((r) => setTimeout(r, waitMs));
-  }
-  // unreachable
-  throw new Error("Max retries exceeded");
-}
-
 export function useGemini() {
-  const store = useAppStore();
-
-  // Prevent double-fire (StrictMode / React 19 double-mount guard)
+  // Single inflight guard — the server also has a dedup window, but this
+  // prevents the UI from sending a second request before the first resolves.
   const isInflightRef = useRef(false);
 
   const sendMessage = useCallback(async (userInput: string) => {
@@ -64,7 +31,7 @@ export function useGemini() {
 
     setIsGenerating(true);
 
-    // Snapshot history BEFORE adding new messages (avoids stale loading placeholder)
+    // Snapshot history BEFORE adding new messages — prevents stale placeholder
     const conversationHistory = messages
       .filter((m) => !m.isLoading && m.content?.trim())
       .map((m) => ({ role: m.role, content: m.content }));
@@ -76,7 +43,6 @@ export function useGemini() {
       timestamp: new Date(),
     } as ChatMessage);
 
-    // Loading placeholder
     addMessage({
       id: generateId(),
       role: "assistant",
@@ -92,29 +58,17 @@ export function useGemini() {
         extension: f.extension,
       }));
 
-      // Callback shown in the loading bubble while waiting to retry
-      const onRetry = (waitMs: number, attempt: number) => {
-        const secs = Math.ceil(waitMs / 1000);
-        updateLastMessage(
-          `⏳ Límite de peticiones alcanzado (intento ${attempt}). Reintentando en ${secs}s…`,
-          true // keep isLoading=true so spinner stays
-        );
-      };
-
-      const response = await fetchWithBackoff(
-        "/api/gemini",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            files: fileList,
-            instruction: userInput,
-            conversationHistory,
-            providerId,
-          }),
-        },
-        onRetry
-      );
+      // Single fetch — no client-side retry. The server handles quota retries.
+      const response = await fetch("/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          files: fileList,
+          instruction: userInput,
+          conversationHistory,
+          providerId,
+        }),
+      });
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
@@ -134,7 +88,6 @@ export function useGemini() {
           })
         );
 
-        // Detect name conflicts
         const names = proposals.map((p) => p.proposedName);
         const dupes = new Set(names.filter((n, i) => names.indexOf(n) !== i));
         const checked = proposals.map((p) => ({ ...p, hasConflict: dupes.has(p.proposedName) }));
