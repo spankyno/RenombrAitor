@@ -37,7 +37,6 @@ export const PROVIDERS: ProviderMeta[] = [
     envKey: "DEEPSEEK_API_KEY",
     baseUrl: "https://api.deepseek.com/v1",
     description: "DeepSeek Chat — muy económico, excelente para tareas de texto",
-    isDefault: true,
   },
   {
     id: "gemini-flash-lite",
@@ -45,6 +44,7 @@ export const PROVIDERS: ProviderMeta[] = [
     model: "gemini-2.0-flash-lite",
     envKey: "GEMINI_API_KEY",
     description: "Google Gemini 2.0 Flash-Lite — el más ligero, ideal para no agotar cuota",
+    isDefault: true,
   },
   {
     id: "gemini-flash",
@@ -75,4 +75,4 @@ export function getProvider(id: ProviderId): ProviderMeta {
   return PROVIDERS.find((p) => p.id === id) ?? PROVIDERS.find((p) => p.isDefault)!;
 }
 
-export const DEFAULT_PROVIDER: ProviderId = "deepseek";
+export const DEFAULT_PROVIDER: ProviderId = "gemini-flash-lite";
