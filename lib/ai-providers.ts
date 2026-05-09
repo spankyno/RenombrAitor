@@ -6,8 +6,8 @@
  *
  * Provider priority (cheapest/freest first):
  *   1. DeepSeek  — default, very cheap, great reasoning
- *   2. Gemini Flash-Lite — Google free tier, lightest model
- *   3. Gemini Flash    — Google free tier, balanced
+ *   2. Gemini 2.0 Flash-Lite — Google free tier, el más ligero (SDK v0.24+ usa v1beta)
+ *   3. Gemini 2.0 Flash     — Google free tier, equilibrado
  *   4. OpenRouter      — meta-router, pay-per-use or free models
  *   5. Grok 3 Mini     — xAI free tier
  */
@@ -41,17 +41,17 @@ export const PROVIDERS: ProviderMeta[] = [
   },
   {
     id: "gemini-flash-lite",
-    label: "Gemini 1.5 Flash",
-    model: "gemini-1.5-flash",
+    label: "Gemini 2.0 Flash-Lite",
+    model: "gemini-2.0-flash-lite",
     envKey: "GEMINI_API_KEY",
-    description: "Google Gemini 1.5 Flash — ligero, ideal para no agotar cuota",
+    description: "Google Gemini 2.0 Flash-Lite — el más ligero, ideal para no agotar cuota",
   },
   {
     id: "gemini-flash",
-    label: "Gemini 1.5 Flash (latest)",
-    model: "gemini-1.5-flash-latest",
+    label: "Gemini 2.0 Flash",
+    model: "gemini-2.0-flash",
     envKey: "GEMINI_API_KEY",
-    description: "Google Gemini 1.5 Flash Latest — siempre apunta a la revisión más reciente",
+    description: "Google Gemini 2.0 Flash — equilibrado entre velocidad y calidad",
   },
   {
     id: "openrouter",
