@@ -43,7 +43,7 @@ const FIELD_STYLE = {
 } as const;
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <span className={FIELD_STYLE.label} style={{ color: "hsl(215 15% 50%)" }}>{children}</span>;
+  return <span className={FIELD_STYLE.label} style={{ color: "hsl(var(--muted-foreground))" }}>{children}</span>;
 }
 
 // ─── Per-tool form components ─────────────────────────────────────────────────
@@ -54,7 +54,7 @@ function ChangeExtForm({ cfg, onChange }: { cfg: ChangeExtensionConfig; onChange
       <Label>Nueva extensión (sin punto)</Label>
       <input className={FIELD_STYLE.input} placeholder="ej: jpg, mp4, txt" value={cfg.newExtension}
         onChange={(e) => onChange({ ...cfg, newExtension: e.target.value.replace(/^\./, "") })} />
-      <p className="text-[10px] mt-1" style={{ color: "hsl(215 15% 40%)" }}>Deja vacío para eliminar la extensión</p>
+      <p className="text-[10px] mt-1" style={{ color: "hsl(var(--muted-foreground))" }}>Deja vacío para eliminar la extensión</p>
     </div>
   );
 }
@@ -86,7 +86,7 @@ function ReplaceForm({ cfg, onChange }: { cfg: ReplaceConfig; onChange: (c: Repl
             <input type="checkbox" checked={cfg.caseSensitive}
               onChange={(e) => onChange({ ...cfg, caseSensitive: e.target.checked })}
               className="w-3.5 h-3.5 accent-[hsl(195_100%_55%)]" />
-            <span className="text-xs" style={{ color: "hsl(215 15% 55%)" }}>Distinguir mayúsculas</span>
+            <span className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>Distinguir mayúsculas</span>
           </label>
         </div>
       </div>
@@ -194,7 +194,7 @@ function EnumerateForm({ cfg, onChange }: { cfg: EnumerateConfig; onChange: (c: 
             onChange={(e) => onChange({ ...cfg, separator: e.target.value })} />
         </div>
       </div>
-      <p className="text-[10px]" style={{ color: "hsl(215 15% 40%)" }}>
+      <p className="text-[10px]" style={{ color: "hsl(var(--muted-foreground))" }}>
         Preview: {cfg.position === "prefix" ? `${String(cfg.start).padStart(cfg.digits, "0")}${cfg.separator}nombre` : `nombre${cfg.separator}${String(cfg.start).padStart(cfg.digits, "0")}`}
       </p>
     </div>
@@ -209,7 +209,7 @@ function DatetimeForm({ cfg, onChange }: { cfg: DatetimeConfig; onChange: (c: Da
         <Label>Plantilla de nombre</Label>
         <input className={FIELD_STYLE.input} value={cfg.template}
           onChange={(e) => onChange({ ...cfg, template: e.target.value })} />
-        <p className="text-[10px] mt-1 font-mono leading-relaxed" style={{ color: "hsl(215 15% 40%)" }}>
+        <p className="text-[10px] mt-1 font-mono leading-relaxed" style={{ color: "hsl(var(--muted-foreground))" }}>
           Tokens: {TOKEN_HINT}
         </p>
       </div>
@@ -217,7 +217,7 @@ function DatetimeForm({ cfg, onChange }: { cfg: DatetimeConfig; onChange: (c: Da
         <input type="checkbox" checked={cfg.useModifiedDate}
           onChange={(e) => onChange({ ...cfg, useModifiedDate: e.target.checked })}
           className="w-3.5 h-3.5 accent-[hsl(195_100%_55%)]" />
-        <span className="text-xs" style={{ color: "hsl(215 15% 55%)" }}>Usar fecha de modificación del archivo (si no, usa fecha de hoy)</span>
+        <span className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>Usar fecha de modificación del archivo (si no, usa fecha de hoy)</span>
       </label>
     </div>
   );
@@ -246,7 +246,7 @@ function RandomForm({ cfg, onChange }: { cfg: RandomNameConfig; onChange: (c: Ra
         <input type="checkbox" checked={cfg.keepExtension}
           onChange={(e) => onChange({ ...cfg, keepExtension: e.target.checked })}
           className="w-3.5 h-3.5 accent-[hsl(195_100%_55%)]" />
-        <span className="text-xs" style={{ color: "hsl(215 15% 55%)" }}>Mantener extensión original</span>
+        <span className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>Mantener extensión original</span>
       </label>
     </div>
   );
@@ -302,29 +302,29 @@ function LivePreview({
 
   return (
     <div className="mt-3 rounded-lg border overflow-hidden"
-      style={{ borderColor: "hsl(220 15% 18%)" }}>
+      style={{ borderColor: "hsl(var(--border))" }}>
       <div className="px-3 py-1.5 border-b flex items-center gap-1.5"
-        style={{ background: "hsl(220 15% 12%)", borderColor: "hsl(220 15% 18%)" }}>
-        <Info size={11} style={{ color: "hsl(195 100% 60%)" }} />
-        <span className="text-[10px] font-medium" style={{ color: "hsl(215 15% 50%)" }}>
+        style={{ background: "hsl(var(--muted))", borderColor: "hsl(var(--border))" }}>
+        <Info size={11} style={{ color: "hsl(var(--primary))" }} />
+        <span className="text-[10px] font-medium" style={{ color: "hsl(var(--muted-foreground))" }}>
           Vista previa (primeros {preview.length} archivos)
         </span>
       </div>
-      <div className="divide-y" style={{ borderColor: "hsl(220 15% 16%)" }}>
+      <div className="divide-y" style={{ borderColor: "hsl(var(--border))" }}>
         {preview.map((p) => (
           <div key={p.fileId} className="flex items-center gap-2 px-3 py-1.5">
             <span className="flex-1 text-[10px] font-mono truncate"
-              style={{ color: "hsl(215 15% 50%)" }}>{p.originalName}</span>
-            <ChevronRight size={10} style={{ color: "hsl(195 100% 55%)", flexShrink: 0 }} />
+              style={{ color: "hsl(var(--muted-foreground))" }}>{p.originalName}</span>
+            <ChevronRight size={10} style={{ color: "hsl(var(--primary))", flexShrink: 0 }} />
             <span className="flex-1 text-[10px] font-mono truncate"
-              style={{ color: p.originalName !== p.proposedName ? "hsl(130 60% 60%)" : "hsl(215 15% 50%)" }}>
+              style={{ color: p.originalName !== p.proposedName ? "hsl(130 60% 60%)" : "hsl(var(--muted-foreground))" }}>
               {p.proposedName}
             </span>
           </div>
         ))}
         {files.length > 5 && (
-          <div className="px-3 py-1" style={{ background: "hsl(220 15% 11%)" }}>
-            <span className="text-[10px]" style={{ color: "hsl(215 15% 38%)" }}>
+          <div className="px-3 py-1" style={{ background: "hsl(var(--muted))" }}>
+            <span className="text-[10px]" style={{ color: "hsl(var(--muted-foreground))" }}>
               + {files.length - 5} archivos más…
             </span>
           </div>
@@ -375,24 +375,24 @@ export function ToolboxPanel({ files, onApplyProposals }: ToolboxPanelProps) {
 
   return (
     <div className="flex flex-col h-full rounded-xl border overflow-hidden"
-      style={{ background: "hsl(222 18% 10%)", borderColor: "hsl(220 15% 16%)" }}>
+      style={{ background: "hsl(var(--card))", borderColor: "hsl(var(--border))" }}>
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b flex-shrink-0"
-        style={{ borderColor: "hsl(220 15% 16%)" }}>
+        style={{ borderColor: "hsl(var(--border))" }}>
         <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: "hsl(270 70% 65% / 0.15)" }}>
-          <Shuffle size={14} style={{ color: "hsl(270 70% 70%)" }} />
+          style={{ background: "hsl(var(--accent) / 0.15)" }}>
+          <Shuffle size={14} style={{ color: "hsl(var(--accent))" }} />
         </div>
         <div className="flex-1">
           <p className="text-sm font-semibold">Toolbox</p>
-          <p className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+          <p className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
             Transformaciones sin IA · {files.length} archivos
           </p>
         </div>
         {activeTool && (
           <button onClick={clearTool} className="p-1 rounded-lg hover:bg-white/[0.05] transition-colors">
-            <X size={14} style={{ color: "hsl(215 15% 50%)" }} />
+            <X size={14} style={{ color: "hsl(var(--muted-foreground))" }} />
           </button>
         )}
       </div>
@@ -411,13 +411,13 @@ export function ToolboxPanel({ files, onApplyProposals }: ToolboxPanelProps) {
                 return (
                   <button key={tool.id} onClick={() => selectTool(tool.id)}
                     className="flex flex-col gap-2 p-3 rounded-xl border text-left transition-all hover:bg-white/[0.04] hover:border-[hsl(270_70%_65%/0.3)] active:scale-[0.98]"
-                    style={{ borderColor: "hsl(220 15% 18%)", background: "hsl(220 15% 12%)" }}>
-                    <Icon size={16} style={{ color: "hsl(270 70% 65%)" }} />
+                    style={{ borderColor: "hsl(var(--border))", background: "hsl(var(--muted))" }}>
+                    <Icon size={16} style={{ color: "hsl(var(--accent))" }} />
                     <div>
-                      <p className="text-xs font-semibold leading-tight" style={{ color: "hsl(210 20% 85%)" }}>
+                      <p className="text-xs font-semibold leading-tight" style={{ color: "hsl(var(--foreground))" }}>
                         {tool.label}
                       </p>
-                      <p className="text-[10px] mt-0.5 leading-relaxed" style={{ color: "hsl(215 15% 48%)" }}>
+                      <p className="text-[10px] mt-0.5 leading-relaxed" style={{ color: "hsl(var(--muted-foreground))" }}>
                         {tool.description}
                       </p>
                     </div>
@@ -439,8 +439,8 @@ export function ToolboxPanel({ files, onApplyProposals }: ToolboxPanelProps) {
                   const Icon = ICON_MAP[meta.icon] ?? Type;
                   return (
                     <>
-                      <Icon size={15} style={{ color: "hsl(270 70% 65%)" }} />
-                      <span className="text-sm font-semibold" style={{ color: "hsl(210 20% 88%)" }}>
+                      <Icon size={15} style={{ color: "hsl(var(--accent))" }} />
+                      <span className="text-sm font-semibold" style={{ color: "hsl(var(--foreground))" }}>
                         {meta.label}
                       </span>
                     </>
@@ -489,18 +489,18 @@ export function ToolboxPanel({ files, onApplyProposals }: ToolboxPanelProps) {
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.2 }}
             className="p-3 border-t flex gap-2 flex-shrink-0"
-            style={{ borderColor: "hsl(220 15% 16%)" }}>
+            style={{ borderColor: "hsl(var(--border))" }}>
             <button onClick={clearTool}
               className="flex-1 py-2 rounded-xl text-xs font-medium border transition-all hover:bg-white/[0.04]"
-              style={{ borderColor: "hsl(220 15% 22%)", color: "hsl(215 15% 55%)" }}>
+              style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }}>
               ← Volver
             </button>
             <button onClick={handleApply}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95"
               style={{
                 background: "linear-gradient(135deg, hsl(270 70% 60%), hsl(270 70% 50%))",
-                color: "hsl(210 20% 95%)",
-                boxShadow: "0 0 16px hsl(270 70% 60% / 0.25)",
+                color: "hsl(var(--foreground))",
+                boxShadow: "0 0 16px hsl(var(--accent) / 0.25)",
               }}>
               <Play size={12} />
               Generar propuesta

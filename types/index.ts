@@ -52,6 +52,7 @@ export interface GenerateRenamesRequest {
   files: Array<{ name: string; size: number; extension: string }>;
   instruction: string;
   conversationHistory: Array<{ role: string; content: string }>;
+  providerId?: string; // which AI provider to use (see lib/ai-providers.ts)
 }
 
 export interface GenerateRenamesResponse {

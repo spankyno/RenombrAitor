@@ -16,8 +16,8 @@ const PROVIDER_COLORS: Record<ProviderId, string> = {
   deepseek:         "hsl(215 90% 60%)",
   "gemini-flash-lite": "hsl(130 60% 55%)",
   "gemini-flash":   "hsl(145 60% 50%)",
-  openrouter:       "hsl(270 70% 65%)",
-  grok3mini:        "hsl(195 100% 55%)",
+  openrouter:       "hsl(var(--accent))",
+  grok3mini:        "hsl(var(--primary))",
 };
 
 export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
@@ -35,9 +35,9 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
           "hover:bg-white/[0.04]"
         )}
         style={{
-          background: "hsl(220 15% 13%)",
-          borderColor: open ? accentColor + "66" : "hsl(220 15% 20%)",
-          color: "hsl(210 20% 80%)",
+          background: "hsl(var(--input))",
+          borderColor: open ? accentColor + "66" : "hsl(var(--border))",
+          color: "hsl(var(--foreground))",
         }}
         title="Cambiar modelo de IA"
       >
@@ -47,7 +47,7 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <ChevronDown size={11} style={{ color: "hsl(215 15% 45%)" }} />
+          <ChevronDown size={11} style={{ color: "hsl(var(--muted-foreground))" }} />
         </motion.span>
       </button>
 
@@ -69,20 +69,20 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
               className="absolute right-0 top-full mt-1.5 z-50 w-72 rounded-xl border shadow-2xl overflow-hidden"
               style={{
                 background: "hsl(222 20% 11%)",
-                borderColor: "hsl(220 15% 20%)",
-                boxShadow: "0 20px 40px hsl(222 20% 4% / 0.6)",
+                borderColor: "hsl(var(--border))",
+                boxShadow: "0 20px 40px hsl(var(--shadow) / 0.6)",
               }}
             >
               {/* Header */}
               <div
                 className="px-3 py-2 border-b"
-                style={{ borderColor: "hsl(220 15% 17%)" }}
+                style={{ borderColor: "hsl(var(--border))" }}
               >
                 <p className="text-[11px] font-semibold uppercase tracking-wider"
-                  style={{ color: "hsl(215 15% 45%)" }}>
+                  style={{ color: "hsl(var(--muted-foreground))" }}>
                   Modelo de IA
                 </p>
-                <p className="text-[10px] mt-0.5" style={{ color: "hsl(215 15% 38%)" }}>
+                <p className="text-[10px] mt-0.5" style={{ color: "hsl(var(--muted-foreground))" }}>
                   Solo se envían nombres de archivo, nunca el contenido
                 </p>
               </div>
@@ -110,7 +110,7 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
                         <div className="flex items-center gap-1.5">
                           <span
                             className="text-xs font-semibold"
-                            style={{ color: isSelected ? color : "hsl(210 20% 82%)" }}
+                            style={{ color: isSelected ? color : "hsl(var(--foreground))" }}
                           >
                             {p.label}
                           </span>
@@ -135,13 +135,13 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
                         </div>
                         <p
                           className="text-[10px] mt-0.5 leading-relaxed"
-                          style={{ color: "hsl(215 15% 45%)" }}
+                          style={{ color: "hsl(var(--muted-foreground))" }}
                         >
                           {p.description}
                         </p>
                         <p
                           className="text-[10px] mt-0.5 font-mono"
-                          style={{ color: "hsl(215 15% 35%)" }}
+                          style={{ color: "hsl(var(--muted-foreground))" }}
                         >
                           env: {p.envKey}
                         </p>
@@ -154,9 +154,9 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
               {/* Footer hint */}
               <div
                 className="px-3 py-2 border-t"
-                style={{ borderColor: "hsl(220 15% 17%)" }}
+                style={{ borderColor: "hsl(var(--border))" }}
               >
-                <p className="text-[10px]" style={{ color: "hsl(215 15% 35%)" }}>
+                <p className="text-[10px]" style={{ color: "hsl(var(--muted-foreground))" }}>
                   Configura las API keys como variables de entorno en Vercel
                 </p>
               </div>

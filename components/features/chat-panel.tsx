@@ -66,15 +66,15 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-1"
         style={{
           background: isUser
-            ? "hsl(270 80% 65% / 0.2)"
-            : "hsl(195 100% 55% / 0.15)",
-          border: `1px solid ${isUser ? "hsl(270 80% 65% / 0.3)" : "hsl(195 100% 55% / 0.25)"}`,
+            ? "hsl(var(--accent) / 0.2)"
+            : "hsl(var(--primary) / 0.15)",
+          border: `1px solid ${isUser ? "hsl(var(--accent) / 0.3)" : "hsl(var(--primary) / 0.25)"}`,
         }}
       >
         {isUser ? (
           <User size={14} style={{ color: "hsl(270 80% 70%)" }} />
         ) : (
-          <Bot size={14} style={{ color: "hsl(195 100% 65%)" }} />
+          <Bot size={14} style={{ color: "hsl(var(--primary))" }} />
         )}
       </div>
 
@@ -86,10 +86,10 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         )}
         style={{
           background: isUser
-            ? "hsl(270 80% 65% / 0.12)"
-            : "hsl(222 18% 14%)",
-          border: `1px solid ${isUser ? "hsl(270 80% 65% / 0.2)" : "hsl(220 15% 20%)"}`,
-          color: isUser ? "hsl(210 20% 90%)" : "hsl(210 20% 85%)",
+            ? "hsl(var(--accent) / 0.12)"
+            : "hsl(var(--card))",
+          border: `1px solid ${isUser ? "hsl(var(--accent) / 0.2)" : "hsl(var(--border))"}`,
+          color: isUser ? "hsl(210 20% 90%)" : "hsl(var(--foreground))",
         }}
       >
         {message.isLoading ? (
@@ -99,7 +99,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
                 <motion.span
                   key={i}
                   className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: "hsl(195 100% 60%)" }}
+                  style={{ background: "hsl(var(--primary))" }}
                   animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
                   transition={{
                     duration: 1,
@@ -109,7 +109,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
                 />
               ))}
             </div>
-            <span style={{ color: "hsl(215 15% 55%)" }}>Analizando archivos...</span>
+            <span style={{ color: "hsl(var(--muted-foreground))" }}>Analizando archivos...</span>
           </div>
         ) : (
           renderContent(message.content)
@@ -161,24 +161,24 @@ export function ChatPanel({
     <div
       className="flex flex-col h-full rounded-xl border overflow-hidden"
       style={{
-        background: "hsl(222 18% 10%)",
-        borderColor: "hsl(220 15% 16%)",
+        background: "hsl(var(--card))",
+        borderColor: "hsl(var(--border))",
       }}
     >
       {/* Header */}
       <div
         className="flex items-center gap-3 px-4 py-3 border-b"
-        style={{ borderColor: "hsl(220 15% 16%)" }}
+        style={{ borderColor: "hsl(var(--border))" }}
       >
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: "hsl(195 100% 55% / 0.15)" }}
+          style={{ background: "hsl(var(--primary) / 0.15)" }}
         >
-          <Sparkles size={14} style={{ color: "hsl(195 100% 65%)" }} />
+          <Sparkles size={14} style={{ color: "hsl(var(--primary))" }} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold">Chat con IA</p>
-          <p className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+          <p className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
             {filesCount} nombres listos · solo se envían nombres, no contenido
           </p>
         </div>
@@ -195,15 +195,15 @@ export function ChatPanel({
           >
             <div
               className="w-12 h-12 rounded-2xl flex items-center justify-center"
-              style={{ background: "hsl(195 100% 55% / 0.1)" }}
+              style={{ background: "hsl(var(--primary) / 0.1)" }}
             >
-              <Bot size={22} style={{ color: "hsl(195 100% 65%)" }} />
+              <Bot size={22} style={{ color: "hsl(var(--primary))" }} />
             </div>
             <div>
-              <p className="text-sm font-medium" style={{ color: "hsl(210 20% 80%)" }}>
+              <p className="text-sm font-medium" style={{ color: "hsl(var(--foreground))" }}>
                 ¿Cómo quieres renombrar los archivos?
               </p>
-              <p className="text-xs mt-1" style={{ color: "hsl(215 15% 50%)" }}>
+              <p className="text-xs mt-1" style={{ color: "hsl(var(--muted-foreground))" }}>
                 Describe el formato o patrón que deseas usar
               </p>
             </div>
@@ -225,12 +225,12 @@ export function ChatPanel({
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             className="border-t overflow-hidden"
-            style={{ borderColor: "hsl(220 15% 16%)" }}
+            style={{ borderColor: "hsl(var(--border))" }}
           >
             <div className="p-3">
               <p
                 className="text-xs mb-2 font-medium"
-                style={{ color: "hsl(215 15% 50%)" }}
+                style={{ color: "hsl(var(--muted-foreground))" }}
               >
                 Sugerencias rápidas:
               </p>
@@ -240,9 +240,9 @@ export function ChatPanel({
                     key={prompt}
                     onClick={() => handleQuickPrompt(prompt)}
                     className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg text-left transition-colors hover:bg-white/[0.04]"
-                    style={{ color: "hsl(215 15% 60%)" }}
+                    style={{ color: "hsl(var(--muted-foreground))" }}
                   >
-                    <ChevronRight size={12} style={{ color: "hsl(195 100% 60%)", flexShrink: 0 }} />
+                    <ChevronRight size={12} style={{ color: "hsl(var(--primary))", flexShrink: 0 }} />
                     {prompt}
                   </button>
                 ))}
@@ -255,13 +255,13 @@ export function ChatPanel({
       {/* Input */}
       <div
         className="p-3 border-t"
-        style={{ borderColor: "hsl(220 15% 16%)" }}
+        style={{ borderColor: "hsl(var(--border))" }}
       >
         <div
           className="flex gap-2 items-end rounded-xl border p-2 transition-colors focus-within:border-[hsl(195_100%_55%/0.4)]"
           style={{
-            background: "hsl(220 15% 13%)",
-            borderColor: "hsl(220 15% 20%)",
+            background: "hsl(var(--input))",
+            borderColor: "hsl(var(--border))",
           }}
         >
           <textarea
@@ -274,7 +274,7 @@ export function ChatPanel({
             disabled={isGenerating}
             className="flex-1 bg-transparent text-sm resize-none outline-none min-h-[36px] max-h-[120px] py-1.5 px-1 placeholder:text-[hsl(215_15%_38%)] disabled:opacity-50"
             style={{
-              color: "hsl(210 20% 88%)",
+              color: "hsl(var(--foreground))",
               scrollbarWidth: "thin",
             }}
           />
@@ -288,14 +288,14 @@ export function ChatPanel({
             style={{
               background: input.trim()
                 ? "linear-gradient(135deg, hsl(195 100% 50%), hsl(195 100% 40%))"
-                : "hsl(220 15% 20%)",
-              color: input.trim() ? "hsl(222 20% 8%)" : "hsl(215 15% 45%)",
+                : "hsl(var(--border))",
+              color: input.trim() ? "hsl(var(--background))" : "hsl(var(--muted-foreground))",
             }}
           >
             <Send size={14} />
           </button>
         </div>
-        <p className="text-[10px] mt-1.5 text-center" style={{ color: "hsl(215 15% 38%)" }}>
+        <p className="text-[10px] mt-1.5 text-center" style={{ color: "hsl(var(--muted-foreground))" }}>
           Enter para enviar · Shift+Enter para nueva línea
         </p>
       </div>

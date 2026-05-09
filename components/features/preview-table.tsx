@@ -76,7 +76,7 @@ export function PreviewTable({
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-lg font-semibold">Vista previa del renombrado</h2>
-          <p className="text-sm mt-0.5" style={{ color: "hsl(215 15% 55%)" }}>
+          <p className="text-sm mt-0.5" style={{ color: "hsl(var(--muted-foreground))" }}>
             {changed.length} de {proposals.length} archivos serán renombrados
             {conflicts.length > 0 && (
               <span className="ml-2" style={{ color: "hsl(30 80% 65%)" }}>
@@ -89,7 +89,7 @@ export function PreviewTable({
         {/* Filter tabs */}
         <div
           className="flex gap-1 p-1 rounded-lg"
-          style={{ background: "hsl(220 15% 13%)" }}
+          style={{ background: "hsl(var(--input))" }}
         >
           {[
             { id: "all", label: `Todos (${proposals.length})` },
@@ -107,7 +107,7 @@ export function PreviewTable({
               )}
               style={
                 filter === tab.id
-                  ? { background: "hsl(220 15% 20%)" }
+                  ? { background: "hsl(var(--border))" }
                   : {}
               }
             >
@@ -120,15 +120,15 @@ export function PreviewTable({
       {/* Table */}
       <div
         className="rounded-xl border overflow-hidden"
-        style={{ borderColor: "hsl(220 15% 16%)" }}
+        style={{ borderColor: "hsl(var(--border))" }}
       >
         {/* Table header */}
         <div
           className="grid grid-cols-[1fr_auto_1fr_auto] items-center px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b"
           style={{
-            background: "hsl(222 18% 10%)",
-            borderColor: "hsl(220 15% 16%)",
-            color: "hsl(215 15% 45%)",
+            background: "hsl(var(--card))",
+            borderColor: "hsl(var(--border))",
+            color: "hsl(var(--muted-foreground))",
           }}
         >
           <span>Nombre actual</span>
@@ -158,7 +158,7 @@ export function PreviewTable({
                 {/* Original name */}
                 <span
                   className="text-xs font-mono truncate pr-3"
-                  style={{ color: isUnchanged ? "hsl(215 15% 50%)" : "hsl(210 20% 75%)" }}
+                  style={{ color: isUnchanged ? "hsl(var(--muted-foreground))" : "hsl(var(--foreground))" }}
                   title={proposal.originalName}
                 >
                   {proposal.originalName}
@@ -169,8 +169,8 @@ export function PreviewTable({
                   size={14}
                   style={{
                     color: isUnchanged
-                      ? "hsl(215 15% 35%)"
-                      : "hsl(195 100% 55%)",
+                      ? "hsl(var(--muted-foreground))"
+                      : "hsl(var(--primary))",
                   }}
                 />
 
@@ -188,8 +188,8 @@ export function PreviewTable({
                         onBlur={commitEdit}
                         className="flex-1 text-xs font-mono bg-transparent outline-none border-b pb-0.5"
                         style={{
-                          borderColor: "hsl(195 100% 55%)",
-                          color: "hsl(210 20% 92%)",
+                          borderColor: "hsl(var(--primary))",
+                          color: "hsl(var(--foreground))",
                         }}
                       />
                       <button onClick={commitEdit}>
@@ -212,7 +212,7 @@ export function PreviewTable({
                         )}
                         style={{
                           color: isUnchanged
-                            ? "hsl(215 15% 50%)"
+                            ? "hsl(var(--muted-foreground))"
                             : proposal.hasConflict
                             ? "hsl(30 80% 65%)"
                             : "hsl(130 60% 65%)",
@@ -225,7 +225,7 @@ export function PreviewTable({
                         <Edit3
                           size={11}
                           className="opacity-0 group-hover/edit:opacity-100 transition-opacity flex-shrink-0"
-                          style={{ color: "hsl(215 15% 50%)" }}
+                          style={{ color: "hsl(var(--muted-foreground))" }}
                         />
                       )}
                     </button>
@@ -239,7 +239,7 @@ export function PreviewTable({
                   ) : isUnchanged ? (
                     <span
                       className="text-[10px]"
-                      style={{ color: "hsl(215 15% 40%)" }}
+                      style={{ color: "hsl(var(--muted-foreground))" }}
                     >
                       =
                     </span>
@@ -257,23 +257,23 @@ export function PreviewTable({
       <div
         className="flex items-center justify-between p-4 rounded-xl border"
         style={{
-          background: "hsl(222 18% 10%)",
-          borderColor: "hsl(220 15% 16%)",
+          background: "hsl(var(--card))",
+          borderColor: "hsl(var(--border))",
         }}
       >
         <div>
           {destinationName ? (
             <div className="flex items-center gap-2">
-              <FolderOutput size={16} style={{ color: "hsl(195 100% 60%)" }} />
+              <FolderOutput size={16} style={{ color: "hsl(var(--primary))" }} />
               <div>
                 <p className="text-sm font-medium">Carpeta destino lista</p>
-                <p className="text-xs font-mono" style={{ color: "hsl(215 15% 55%)" }}>
+                <p className="text-xs font-mono" style={{ color: "hsl(var(--muted-foreground))" }}>
                   📁 {destinationName}
                 </p>
               </div>
             </div>
           ) : (
-            <p className="text-sm" style={{ color: "hsl(215 15% 55%)" }}>
+            <p className="text-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
               Se creará la carpeta destino al aplicar
             </p>
           )}
@@ -284,16 +284,16 @@ export function PreviewTable({
             <div className="flex items-center gap-3">
               <div
                 className="w-32 h-1.5 rounded-full overflow-hidden"
-                style={{ background: "hsl(220 15% 20%)" }}
+                style={{ background: "hsl(var(--border))" }}
               >
                 <motion.div
                   className="h-full rounded-full"
-                  style={{ background: "hsl(195 100% 55%)" }}
+                  style={{ background: "hsl(var(--primary))" }}
                   animate={{ width: `${progressPercent}%` }}
                   transition={{ duration: 0.2 }}
                 />
               </div>
-              <span className="text-xs tabular-nums" style={{ color: "hsl(215 15% 55%)" }}>
+              <span className="text-xs tabular-nums" style={{ color: "hsl(var(--muted-foreground))" }}>
                 {progressPercent}%
               </span>
             </div>
@@ -308,7 +308,7 @@ export function PreviewTable({
             )}
             style={{
               background: "linear-gradient(135deg, hsl(130 60% 45%), hsl(130 60% 38%))",
-              color: "hsl(210 20% 95%)",
+              color: "hsl(var(--foreground))",
               boxShadow: "0 0 20px hsl(130 60% 45% / 0.25)",
             }}
           >

@@ -88,13 +88,13 @@ export function DoneScreen({ result, destinationName, onReset }: DoneScreenProps
         transition={{ delay: 0.4 }}
         className="flex items-center gap-3 px-5 py-3 rounded-xl border mb-4"
         style={{
-          background: "hsl(222 18% 11%)",
-          borderColor: "hsl(220 15% 18%)",
+          background: "hsl(var(--card))",
+          borderColor: "hsl(var(--border))",
         }}
       >
-        <FolderOpen size={18} style={{ color: "hsl(195 100% 60%)" }} />
+        <FolderOpen size={18} style={{ color: "hsl(var(--primary))" }} />
         <div className="text-left">
-          <p className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+          <p className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
             Archivos guardados en
           </p>
           <p className="text-sm font-mono font-medium">{destinationName}</p>
@@ -120,7 +120,7 @@ export function DoneScreen({ result, destinationName, onReset }: DoneScreenProps
           </div>
           <div className="p-3 space-y-1 max-h-40 overflow-y-auto">
             {result.errors.map((err, i) => (
-              <div key={i} className="text-xs font-mono" style={{ color: "hsl(215 15% 55%)" }}>
+              <div key={i} className="text-xs font-mono" style={{ color: "hsl(var(--muted-foreground))" }}>
                 <span style={{ color: "hsl(0 70% 65%)" }}>{err.file}</span>
                 {" → "}
                 {err.error}
@@ -138,9 +138,9 @@ export function DoneScreen({ result, destinationName, onReset }: DoneScreenProps
         onClick={onReset}
         className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all hover:scale-105 active:scale-95"
         style={{
-          background: "hsl(222 18% 15%)",
+          background: "hsl(var(--muted))",
           border: "1px solid hsl(220 15% 22%)",
-          color: "hsl(210 20% 80%)",
+          color: "hsl(var(--foreground))",
         }}
       >
         <RefreshCw size={16} />

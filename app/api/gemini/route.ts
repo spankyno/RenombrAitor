@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { GenerateRenamesRequest } from "@/types";
 import { sanitizeFileName, getExtension, getBaseName } from "@/types";
 import { getProvider, DEFAULT_PROVIDER, type ProviderId } from "@/lib/ai-providers";
+import { auth } from "@clerk/nextjs/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -160,6 +161,15 @@ export async function POST(req: NextRequest) {
   }
 
   const { files, instruction, conversationHistory, providerId } = body;
+
+  // Only authenticated users can use the AI API
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Debes iniciar sesión para usar la IA. El Toolbox está disponible sin cuenta." },
+      { status: 401 }
+    );
+  }
 
   if (!files || !instruction) {
     return NextResponse.json({ error: "Faltan campos: files, instruction" }, { status: 400 });

@@ -18,9 +18,9 @@ const EXT_COLORS: Record<string, string> = {
   png: "hsl(195 80% 60%)",
   gif: "hsl(195 80% 60%)",
   webp: "hsl(195 80% 60%)",
-  mp4: "hsl(270 70% 65%)",
-  mov: "hsl(270 70% 65%)",
-  avi: "hsl(270 70% 65%)",
+  mp4: "hsl(var(--accent))",
+  mov: "hsl(var(--accent))",
+  avi: "hsl(var(--accent))",
   mp3: "hsl(45 90% 65%)",
   wav: "hsl(45 90% 65%)",
   flac: "hsl(45 90% 65%)",
@@ -30,12 +30,12 @@ const EXT_COLORS: Record<string, string> = {
   xlsx: "hsl(130 70% 60%)",
   zip: "hsl(30 80% 65%)",
   rar: "hsl(30 80% 65%)",
-  txt: "hsl(215 15% 60%)",
-  md: "hsl(215 15% 60%)",
+  txt: "hsl(var(--muted-foreground))",
+  md: "hsl(var(--muted-foreground))",
 };
 
 function getExtColor(ext: string): string {
-  return EXT_COLORS[ext.toLowerCase()] || "hsl(215 15% 55%)";
+  return EXT_COLORS[ext.toLowerCase()] || "hsl(var(--muted-foreground))";
 }
 
 export function FileListPanel({ files, folderName }: FileListPanelProps) {
@@ -45,29 +45,29 @@ export function FileListPanel({ files, folderName }: FileListPanelProps) {
     <div
       className="flex flex-col h-full rounded-xl border overflow-hidden"
       style={{
-        background: "hsl(222 18% 10%)",
-        borderColor: "hsl(220 15% 16%)",
+        background: "hsl(var(--card))",
+        borderColor: "hsl(var(--border))",
       }}
     >
       {/* Header */}
       <div
         className="flex items-center gap-3 px-4 py-3 border-b"
-        style={{ borderColor: "hsl(220 15% 16%)" }}
+        style={{ borderColor: "hsl(var(--border))" }}
       >
-        <FolderOpen size={16} style={{ color: "hsl(195 100% 60%)" }} />
+        <FolderOpen size={16} style={{ color: "hsl(var(--primary))" }} />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate" title={folderName}>
             {folderName}
           </p>
-          <p className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+          <p className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
             {files.length} archivos · {formatFileSize(totalSize)}
           </p>
         </div>
         <span
           className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
           style={{
-            background: "hsl(195 100% 55% / 0.1)",
-            color: "hsl(195 100% 65%)",
+            background: "hsl(var(--primary) / 0.1)",
+            color: "hsl(var(--primary))",
           }}
         >
           <Hash size={10} />
@@ -79,8 +79,8 @@ export function FileListPanel({ files, folderName }: FileListPanelProps) {
       <div className="flex-1 overflow-y-auto">
         {files.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 p-8">
-            <File size={32} style={{ color: "hsl(215 15% 40%)" }} />
-            <p className="text-sm text-center" style={{ color: "hsl(215 15% 45%)" }}>
+            <File size={32} style={{ color: "hsl(var(--muted-foreground))" }} />
+            <p className="text-sm text-center" style={{ color: "hsl(var(--muted-foreground))" }}>
               La carpeta está vacía o no contiene archivos
             </p>
           </div>
@@ -113,7 +113,7 @@ export function FileListPanel({ files, folderName }: FileListPanelProps) {
                 {/* Filename */}
                 <span
                   className="flex-1 text-xs truncate font-mono"
-                  style={{ color: "hsl(210 20% 80%)" }}
+                  style={{ color: "hsl(var(--foreground))" }}
                   title={file.name}
                 >
                   {file.name}
@@ -122,7 +122,7 @@ export function FileListPanel({ files, folderName }: FileListPanelProps) {
                 {/* Size */}
                 <span
                   className="text-xs flex-shrink-0 tabular-nums"
-                  style={{ color: "hsl(215 15% 45%)" }}
+                  style={{ color: "hsl(var(--muted-foreground))" }}
                 >
                   {formatFileSize(file.size)}
                 </span>
