@@ -6,6 +6,32 @@ import { Toaster } from "sonner";
 export const metadata: Metadata = {
   title: "RenombrAitor — Renombrado inteligente de archivos con IA",
   description: "Renombra archivos de forma masiva e inteligente usando IA. Soporta snake_case, camelCase, prefijos, fechas y más.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+  },
+  openGraph: {
+    title: "RenombrAitor — Renombrado inteligente de archivos con IA",
+    description: "Renombra archivos de forma masiva e inteligente usando IA. Soporta snake_case, camelCase, prefijos, fechas y más.",
+    url: "https://renombraitor.vercel.app",
+    siteName: "RenombrAitor",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "RenombrAitor — Renombrado inteligente de archivos con IA",
+      },
+    ],
+    locale: "es_ES",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "RenombrAitor — Renombrado inteligente de archivos con IA",
+    description: "Renombra archivos de forma masiva e inteligente usando IA. Soporta snake_case, camelCase, prefijos, fechas y más.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
