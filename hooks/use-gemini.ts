@@ -8,37 +8,67 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
 }
 
+// ─── Exponential backoff with Retry-After support ─────────────────────────────
+async function fetchWithBackoff(
+  url: string,
+  init: RequestInit,
+  onRetry?: (waitMs: number, attempt: number) => void,
+  maxAttempts = 4
+): Promise<Response> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const res = await fetch(url, init);
+
+    if (res.status !== 429) return res;
+
+    // Last attempt — return the 429 so caller can handle it
+    if (attempt === maxAttempts - 1) return res;
+
+    // Read Retry-After from server (in seconds) or fall back to exponential
+    const retryAfterSec = Number(res.headers.get("Retry-After") ?? 0);
+    const baseDelay = retryAfterSec > 0
+      ? retryAfterSec * 1000
+      : Math.min(2000 * Math.pow(2, attempt), 30_000); // 2s → 4s → 8s → 30s cap
+    const jitter = Math.random() * 500;
+    const waitMs = Math.round(baseDelay + jitter);
+
+    console.warn(`[RenombrAitor] 429 on attempt ${attempt + 1}/${maxAttempts} — waiting ${(waitMs / 1000).toFixed(1)}s`);
+    onRetry?.(waitMs, attempt + 1);
+
+    await new Promise((r) => setTimeout(r, waitMs));
+  }
+  // unreachable
+  throw new Error("Max retries exceeded");
+}
+
 export function useGemini() {
   const store = useAppStore();
 
-  // BUG FIX: use a ref to track in-flight requests.
-  // The previous implementation had `messages` in the useCallback dep array.
-  // Adding the loading message to the store caused `messages` to change, which
-  // invalidated and re-created the callback mid-execution in StrictMode / React 19,
-  // resulting in the fetch being called twice and a spurious 429 from our own
-  // rate-limit error handler misclassifying the duplicate request.
+  // Prevent double-fire (StrictMode / React 19 double-mount guard)
   const isInflightRef = useRef(false);
 
   const sendMessage = useCallback(async (userInput: string) => {
     if (!userInput.trim()) return;
-
-    // Prevent double-fire
     if (isInflightRef.current) return;
     isInflightRef.current = true;
 
-    // Read current state directly from store (avoids stale closure)
-    const { files, messages, providerId, addMessage, updateLastMessage, setProposals, setStep, setIsGenerating } =
-      useAppStore.getState();
+    const {
+      files,
+      messages,
+      providerId,
+      addMessage,
+      updateLastMessage,
+      setProposals,
+      setStep,
+      setIsGenerating,
+    } = useAppStore.getState();
 
     setIsGenerating(true);
 
-    // Snapshot the conversation history BEFORE adding new messages,
-    // so the history sent to the API never includes the loading placeholder.
+    // Snapshot history BEFORE adding new messages (avoids stale loading placeholder)
     const conversationHistory = messages
       .filter((m) => !m.isLoading && m.content?.trim())
       .map((m) => ({ role: m.role, content: m.content }));
 
-    // Add user message to UI
     addMessage({
       id: generateId(),
       role: "user",
@@ -46,7 +76,7 @@ export function useGemini() {
       timestamp: new Date(),
     } as ChatMessage);
 
-    // Add loading placeholder to UI
+    // Loading placeholder
     addMessage({
       id: generateId(),
       role: "assistant",
@@ -62,16 +92,29 @@ export function useGemini() {
         extension: f.extension,
       }));
 
-      const response = await fetch("/api/gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          files: fileList,
-          instruction: userInput,
-          conversationHistory,
-          providerId,
-        }),
-      });
+      // Callback shown in the loading bubble while waiting to retry
+      const onRetry = (waitMs: number, attempt: number) => {
+        const secs = Math.ceil(waitMs / 1000);
+        updateLastMessage(
+          `⏳ Límite de peticiones alcanzado (intento ${attempt}). Reintentando en ${secs}s…`,
+          true // keep isLoading=true so spinner stays
+        );
+      };
+
+      const response = await fetchWithBackoff(
+        "/api/gemini",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            files: fileList,
+            instruction: userInput,
+            conversationHistory,
+            providerId,
+          }),
+        },
+        onRetry
+      );
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
@@ -91,7 +134,7 @@ export function useGemini() {
           })
         );
 
-        // Detect conflicts
+        // Detect name conflicts
         const names = proposals.map((p) => p.proposedName);
         const dupes = new Set(names.filter((n, i) => names.indexOf(n) !== i));
         const checked = proposals.map((p) => ({ ...p, hasConflict: dupes.has(p.proposedName) }));
@@ -112,7 +155,6 @@ export function useGemini() {
       setIsGenerating(false);
       isInflightRef.current = false;
     }
-  // No store state in deps — we read from getState() to avoid stale closures.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
