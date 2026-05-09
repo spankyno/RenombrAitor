@@ -8,6 +8,33 @@ import { auth } from "@clerk/nextjs/server";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
+// ─── Per-user rate limiter (sliding window) ───────────────────────────────────
+// Gemini 2.0 Flash-Lite free tier: 30 RPM / 1500 RPD.
+// We enforce 20 RPM per user (conservative) to leave headroom for retries.
+const RATE_WINDOW_MS = 60_000;      // 1-minute window
+const RATE_MAX_REQUESTS = 20;       // max requests per window per user
+
+interface RateEntry { timestamps: number[] }
+const rateMap = new Map<string, RateEntry>();
+
+function checkRateLimit(userId: string): { allowed: boolean; retryAfterMs: number } {
+  const now = Date.now();
+  const entry = rateMap.get(userId) ?? { timestamps: [] };
+  // Drop timestamps outside the window
+  entry.timestamps = entry.timestamps.filter((t) => now - t < RATE_WINDOW_MS);
+
+  if (entry.timestamps.length >= RATE_MAX_REQUESTS) {
+    const oldest = entry.timestamps[0];
+    const retryAfterMs = RATE_WINDOW_MS - (now - oldest) + 500; // +500ms buffer
+    rateMap.set(userId, entry);
+    return { allowed: false, retryAfterMs };
+  }
+
+  entry.timestamps.push(now);
+  rateMap.set(userId, entry);
+  return { allowed: true, retryAfterMs: 0 };
+}
+
 const SYSTEM_PROMPT = `Eres RenombrAitor, un asistente experto en renombrar archivos de forma inteligente y consistente.
 
 IMPORTANTE: Solo recibes NOMBRES de archivos (no su contenido). Trabaja únicamente con los nombres.
@@ -208,6 +235,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "Debes iniciar sesión para usar la IA. El Toolbox está disponible sin cuenta." },
       { status: 401 }
+    );
+  }
+
+  // ── Per-user rate limit check ─────────────────────────────────────────────
+  const { allowed, retryAfterMs } = checkRateLimit(userId);
+  if (!allowed) {
+    const retryAfterSec = Math.ceil(retryAfterMs / 1000);
+    return NextResponse.json(
+      { error: `⏳ Demasiadas peticiones. Espera ${retryAfterSec}s antes de reintentar.`, retryAfterMs },
+      {
+        status: 429,
+        headers: { "Retry-After": String(retryAfterSec) },
+      }
     );
   }
 
