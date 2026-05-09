@@ -58,7 +58,22 @@ export function formatFileSize(bytes: number): string {
 // Sanitize filename
 export function sanitizeFileName(name: string): string {
   // Remove invalid characters for Windows/Mac/Linux
-  return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
+  let sanitized = name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
+  
+  // Prevent purely dots or spaces which can crash some explorers
+  if (/^\.*$/.test(sanitized)) sanitized = "unnamed_file";
+  
+  // Length limit (common in most OS is 255)
+  if (sanitized.length > 250) {
+    const ext = getExtension(sanitized);
+    sanitized = sanitized.slice(0, 240) + (ext ? `.${ext}` : "");
+  }
+
+  // Reserved names in Windows
+  const reserved = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
+  if (reserved.test(sanitized)) sanitized = "_" + sanitized;
+
+  return sanitized;
 }
 
 // Get file extension
