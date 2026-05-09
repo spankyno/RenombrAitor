@@ -4,15 +4,20 @@ import "./globals.css";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "RenombrAitor — Herramienta técnica de renombrado masivo",
-  description: "Renombra archivos de forma masiva y segura. 100% local, sin IA, con herramientas técnicas offline (snake_case, camelCase, prefijos, fechas y más).",
+  title: "RenombrAitor 🛠️ — Renombrado masivo y técnico de archivos (100% Local)",
+  description: "La herramienta más rápida y segura para renombrar archivos masivamente. Privacidad total (100% local), sin IA. Soporta Regex, prefijos, fechas, camelCase y más.",
+  authors: [{ name: "Aitor Sánchez Gutiérrez" }],
+  keywords: ["renombrar archivos", "batch rename", "renombrar masivo", "file renamer", "privacidad", "herramienta local"],
+  verification: {
+    google: "MEiDmnJOvnWITHUi0HCLxuoulOEm0oTM4fwQMugxoyY",
+  },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
   },
   openGraph: {
-    title: "RenombrAitor — Herramienta técnica de renombrado masivo",
-    description: "Renombra archivos de forma masiva y segura. 100% local, sin IA, con herramientas técnicas offline.",
+    title: "RenombrAitor 🛠️ — Renombrado masivo y técnico de archivos (100% Local)",
+    description: "Renombra archivos de forma masiva y segura sin que salgan de tu ordenador. Herramientas técnicas offline y privacidad garantizada.",
     url: "https://renombraitor.vercel.app",
     siteName: "RenombrAitor",
     images: [
@@ -20,7 +25,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "RenombrAitor — Herramienta técnica de renombrado masivo",
+        alt: "RenombrAitor — Herramienta técnica de renombrado masivo local",
       },
     ],
     locale: "es_ES",
@@ -28,14 +33,32 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "RenombrAitor — Herramienta técnica de renombrado masivo",
-    description: "Renombra archivos de forma masiva y segura. 100% local, sin IA, con herramientas técnicas offline.",
+    title: "RenombrAitor 🛠️ — Renombrado masivo y técnico de archivos",
+    description: "Renombra archivos masivamente con total privacidad. 100% local, herramientas técnicas avanzadas.",
     images: ["/og-image.png"],
   },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_test_Y2xlcmsuYWNjb3VudHMuZGV2JA";
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "RenombrAitor",
+    "url": "https://renombraitor.vercel.app",
+    "description": "Herramienta técnica de renombrado masivo de archivos local y segura.",
+    "applicationCategory": "Utility",
+    "operatingSystem": "All",
+    "author": {
+      "@type": "Person",
+      "name": "Aitor Sánchez Gutiérrez",
+      "url": "https://aitorsanchez.pages.dev"
+    },
+    "sameAs": [
+      "https://aitorhub.vercel.app/"
+    ]
+  };
 
   return (
     <ClerkProvider publishableKey={publishableKey}>
@@ -46,6 +69,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
             rel="stylesheet"
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
           />
           <script
             dangerouslySetInnerHTML={{
