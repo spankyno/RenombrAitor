@@ -63,8 +63,8 @@ function ReplaceForm({ cfg, onChange }: { cfg: ReplaceConfig; onChange: (c: Repl
   return (
     <div className="space-y-2">
       <div className={FIELD_STYLE.col}>
-        <Label>Buscar (admite * y ?)</Label>
-        <input className={FIELD_STYLE.input} placeholder="ej: foto_*, IMG_???" value={cfg.search}
+        <Label>{cfg.useRegex ? "Expresión Regular (Regex)" : "Buscar (admite * y ?)"}</Label>
+        <input className={FIELD_STYLE.input} placeholder={cfg.useRegex ? "ej: ^\\d{3}_" : "ej: foto_*, IMG_???"} value={cfg.search}
           onChange={(e) => onChange({ ...cfg, search: e.target.value })} />
       </div>
       <div className={FIELD_STYLE.col}>
@@ -72,23 +72,27 @@ function ReplaceForm({ cfg, onChange }: { cfg: ReplaceConfig; onChange: (c: Repl
         <input className={FIELD_STYLE.input} placeholder="texto de sustitución" value={cfg.replacement}
           onChange={(e) => onChange({ ...cfg, replacement: e.target.value })} />
       </div>
-      <div className={FIELD_STYLE.row}>
-        <div className="flex-1">
-          <Label>Aplicar en</Label>
-          <select className={FIELD_STYLE.select} value={cfg.scope}
-            onChange={(e) => onChange({ ...cfg, scope: e.target.value as ReplaceConfig["scope"] })}>
-            <option value="basename">Solo nombre base</option>
-            <option value="full">Nombre completo (con extensión)</option>
-          </select>
-        </div>
-        <div className="flex flex-col justify-end pb-0.5">
-          <label className={FIELD_STYLE.check}>
-            <input type="checkbox" checked={cfg.caseSensitive}
-              onChange={(e) => onChange({ ...cfg, caseSensitive: e.target.checked })}
-              className="w-3.5 h-3.5 accent-[hsl(195_100%_55%)]" />
-            <span className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>Distinguir mayúsculas</span>
-          </label>
-        </div>
+      <div className="grid grid-cols-2 gap-2">
+        <label className={FIELD_STYLE.check}>
+          <input type="checkbox" checked={cfg.caseSensitive}
+            onChange={(e) => onChange({ ...cfg, caseSensitive: e.target.checked })}
+            className="w-3.5 h-3.5 accent-[hsl(195_100%_55%)]" />
+          <span className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>Mayúsculas</span>
+        </label>
+        <label className={FIELD_STYLE.check}>
+          <input type="checkbox" checked={cfg.useRegex}
+            onChange={(e) => onChange({ ...cfg, useRegex: e.target.checked })}
+            className="w-3.5 h-3.5 accent-[hsl(195_100%_55%)]" />
+          <span className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>Usar Regex</span>
+        </label>
+      </div>
+      <div className={FIELD_STYLE.col}>
+        <Label>Aplicar en</Label>
+        <select className={FIELD_STYLE.select} value={cfg.scope}
+          onChange={(e) => onChange({ ...cfg, scope: e.target.value as ReplaceConfig["scope"] })}>
+          <option value="basename">Solo nombre base</option>
+          <option value="full">Nombre completo (con extensión)</option>
+        </select>
       </div>
     </div>
   );

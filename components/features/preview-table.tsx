@@ -235,7 +235,12 @@ export function PreviewTable({
                 {/* Status icon */}
                 <div className="pl-4">
                   {proposal.hasConflict ? (
-                    <AlertTriangle size={14} style={{ color: "hsl(30 80% 65%)" }} />
+                    <div
+                      className="cursor-help"
+                      title="Este nombre ya existe en la lista o en la carpeta destino."
+                    >
+                      <AlertTriangle size={14} style={{ color: "hsl(30 80% 65%)" }} />
+                    </div>
                   ) : isUnchanged ? (
                     <span
                       className="text-[10px]"
