@@ -3,7 +3,7 @@
 import { Mail, Globe, ExternalLink } from "lucide-react";
 
 const LINKS = [
-  { label: "Contacto", href: "https://aitor-blog-contacto.vercel.app/" },
+  { label: "Contacto", href: "https://aitorsanchez.pages.dev/contacto/" },
   { label: "Blog", href: "https://aitorsanchez.pages.dev/" },
   { label: "Más apps", href: "https://aitorhub.vercel.app/" },
 ];
