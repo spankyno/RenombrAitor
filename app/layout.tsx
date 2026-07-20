@@ -83,8 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <script
             src="https://aitors-hub-dashboard.asanchezgu.workers.dev/tracker.js"
             data-app="renombraitor"
-            data-key="ak_d91a6c75cd1b460c9860a4ff06da70e2"
-            strategy="afterInteractive"
+            data-key="ak_d91a6c75cd1b460c9860a4ff06da70e2"            
           />  
         </head>
         <body className="antialiased min-h-screen flex flex-col">
